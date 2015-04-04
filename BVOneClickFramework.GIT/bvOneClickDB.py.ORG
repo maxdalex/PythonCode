@@ -1,0 +1,321 @@
+
+
+"""
+ This module provides the model layer of MVC. It defines data types and raised events" \
+" Many of the classes are abstract classes needed to be refined by the implementation details of real DB used" \
+" in the first version the DB is implemented with google spread" \
+
+Model:
+ - a talk has several media
+ - each media can have one or more media hosts
+ - one of the media hosts of a media is considered the primary media and is the source of it
+ - in the UI there is a column for each media host and a handler registered on the media host "changedStatus" event.
+
+NOTE: Every media host will use a specific handle to manage the hosted talk. Where are these hndles stored?
+Best is that specific instance variables represnts instances of hosts within the talk rather than having
+singletones around. REfine this idea. The Tak HOstingCOntrol needs to be an instance variable to store
+the implementation dependent handlers for that particular talk.
+
+Also different talks can have a different set of hosts, like be only on outube or only on viemo. So it is good
+to have the HostControlObject passed to the constructor!
+
+23/1/15
+I realize I took an extreme approach wanting to see all action made on a talk as a method of the Talk class. It is better
+to use a more balanced approach were some of the processing is made in separate classes on a Talk instance, This allow to
+define a concrete Talk class in the BVOneClickFramework
+
+
+
+"""
+
+
+class BVOneClickDB (object):
+    'singletone representing the DB module'
+
+    #ABSTRACT METHODS
+    def openDB(self): pass
+    def getTalkJobs(self): pass
+
+
+
+class TalkKeys (object):
+    'provides constant standardized keys for all relevants elements of a talk '
+    ID = 'id'
+    STATUS = 'status'
+    ACTION = 'action'
+
+    class MediaTypes:
+        VIDEO = 'video'
+        AUDIO = 'audio'
+        THUMB = 'thumb'
+
+    class Descriptor (object):
+        EDITOR = 'editor'
+        DATE = 'date'
+        TRAINER = 'trainer'
+        CONTEXT = 'context'
+        LANGUAGE = 'language'
+        DESC = 'description'
+        SEODESC = 'seodesc'
+        TAGS = 'tags'
+        SEOTAGS = 'seotags'
+        CATEGORY = 'category'
+        ACCESS = 'access'
+        FNAME = 'filename'
+        TITLE = 'title'
+        EXCPTCOMP = 'excerptcompof'
+        #UPLDPATTERN =  'pattern' # storage may not be needed as implicit in the list of media host : it culd be HWD, youtube, vimeo
+
+
+class TalkDescriptor (object):
+    ' Due to the number of fields descriptor is implemtented as a dictionary to be safer and more extendible'
+
+    def __init__(self, d):
+        self.__descdict = d
+
+    def getValue(self, key):
+        res = self.__descdict[key]
+        return res
+
+
+class MediaThumbnail (object):
+    'thumbnails are associated to a media host.'
+    def __init__(self, url):
+        self.__url = url
+
+
+class MediaSource (object):
+    def __init__(self, srcurl, t, directives = None):
+        'the attribute  params is a host dependent info carried along in the framework'
+        self.type = t
+        self.url = srcurl
+        self.directives = directives
+
+class BVMediaSourceEventHandler (object):
+    'abstract class defining an handler'
+    def processSuccess(self,handle,msg):pass
+    def processFailed(selfself, msg):pass
+
+
+########################## WARNING: this needs a similar thing as a Src Process Agent ###########################
+# Let us use the same pattern used for host agent with source agents. Every media will be encapuslated in a
+# media agent. IN this agent we can have a event submission that works like in the host agents.
+# We can even have a superclass agent for that with just one event handler type.
+
+class BVMediaProcAgent (object):
+    ' it is the processor of a specific media'
+
+    # directives recognized
+    EXTRACTAUDIO = "_extract_"
+
+    def __init__(self, mediatype):
+        self.__mediatype = mediatype
+
+    # it sends event like the agents.
+    def subscribe(self, srcProcEventHandler):
+        self._eventHandlers.append(srcProcEventHandler)
+    def _dispatchSuccess(self, handle, msg):
+        for h in self._eventHandlers: h.processSuccess(handle, msg)
+    def _dispatchFailure(self, msg):
+        for h in self._eventHandlers: h.processFailure(msg)
+
+
+    def processsrc(self, talk): pass
+
+
+
+
+
+class BVTalkMedia (object):
+    'A media has a media source and a list of hosts. If empty = is not hosted'
+    def isHosted(self): pass
+    def getType(self) : return self.__msrc.type
+    def getPrimaryHost(self): return self.__phost
+    def getOtherHosts(self): return self.__ohosts
+    def getTalk(self): return self.__talk
+    def getSource(self): return self.__msrc
+
+    def setTalk(self,t):
+        self.__talk =t
+
+
+    def setPrimaryHost(self, host):
+        #when a host is added the media needs to be already associated to a talk
+        self.__phost= host
+        host.setTalk(self.getTalk())
+
+    def appendHost(self, host):
+        #when a host is added the media needs to be already associated to a talk
+        self.__ohosts.append(host)
+        host.setTalk(self.getTalk())
+
+    def __init__(self,  msrc):
+
+        self.__talk = None
+        self.__msrc =  msrc
+        self.__phost = None
+        self.__ohosts = []
+
+
+# defined by subclasses
+class TalkMediaHostHandle (object): pass
+
+class BVHostAgentEventHandler (object):
+    'Abstract Calss. we put an event handler straight into the agents.Keep it simple '
+    def uploadSuccess(self, mediaHostHandle, msg ):pass
+    def uploadFailure(self, msg): pass
+
+class BVTalkMediaHostAgent (object):
+
+    """
+    It is one of the  hosts of a media for a talk. It also includes the thumb for that media on this host
+    A Media host only hosts one media. Even if the platform is the same, different media hosts instances
+    are used for different media.
+
+    A media host is created without any association to a talk and then instantiated with a talk
+    """
+    #recognized directives
+    PRIMARYHOST = '_primary'
+    UPLOAD = '_upload'
+    REMOTELNK = '_remotelnk'
+    VIDEOTHUMB = '_videothumb'
+    TRAINTHUMB = '_trainthumb'
+
+    #event types
+    UPLOAD_SUCCESS = 0
+    UPLOAD_FAILURE = -1
+
+
+    def setTalk(self, t): __talk = t
+
+    def subscribe(self,hostAgentEventHandler):
+        self._eventHandlers.append(hostAgentEventHandler)
+
+    def _dispatchSuccess(self, handle, msg ):
+        for h in self._eventHandlers: h.uploadSuccess(handle, msg)
+
+    def _dispatchFailure(self, msg):
+        for h in self._eventHandlers: h.uploadFailure(msg)
+
+    def upload(self): pass
+    def download(self, dest): pass
+    def getStatus(self): pass
+    def modify(self, attribute, value): pass
+    # name is used to identify the agent for I/O purpose
+    def setName(self, name) : self._name = name
+    def getname(self): return self._name
+
+    def setHandle(self, handle): self._handle = handle
+    def getHandle(self): return self.__handle
+    def setMedia(self, media) : self.__media = media
+    def getMedia(self): return self.__media
+    def getThumb(self): return self.__thumb
+    def getTalk(self): return self.getMedia().getTalk()
+    def getDirectives(self): return self.__directives#list
+
+
+    def __init__(self, thumb, ds):
+        # I expect ds to be a list
+        self.__media = None
+        self.__thumb = thumb
+        self.__handle = None
+        self.__directives = ds
+        self.__name = None
+        self._eventHandlers = []
+
+
+
+# beter to discern between status and action. Fot the moment we only need action.
+class BVTalkJob (object):
+    'represent a job to be done on a talk'
+    NOOP = 'NOOP'
+    COMPLETE_UPLOAD = 'uploadall' # in case something went wrong it completes that part of uploads
+    REPLACE_VIDEO = 'replacevideo'
+    REPLACE_AUDIO = 'replaceaudio'
+    MODIFY_DESC = 'modifydesc'
+
+    def getTalk(self): return self.__talk
+    def getAction(self): return self.__action
+
+    def __init__(self, talk, action):
+        self.__talk = talk
+        self.__action = action
+
+
+class BVTalkStatus (object):
+    FAILURE = 0
+    UPLOADED = 1
+    PARTIAL = 2
+
+
+########################################## MAIN TALK CLASS ###########################################################
+class BVTalkEventType (object):
+    NOTYPE = 0
+    FAILURE = -1
+    NEWMEDIAUPLOADED = 2
+
+
+
+class BVTalkEvent (object):
+    def __init__(self, talk, agent, type, message):
+        self.talk = talk
+        self.agent = agent
+        self.type = type
+        self.message = message
+
+
+class BVTalkEventHandler (object):
+    'an abstract class for specific handlers to be subscribed'
+    def handle(self, event):pass
+
+
+class BVTalk (object):
+    """
+    ######################## How the complex of a talk is created in the constructors #########################
+
+    1. A talk is created without media and hosts. Media are added with AddMEdia. AddMedia calls the setTalk in media.
+    2. A media is created on its own out of a talk and without media hosts.
+    2A. A media process agent is created from the media
+    2B. Before hosts are added the media (process agent) needs to be associated to a talk.
+    3. Media hosts are added  with appendHost appendHost calls the setMedia in host
+    3. A media host is created on its own and later added to a media with append host.
+    """
+
+    __eventHandlers = []
+
+    # SUBSCRIBE EVENTS: to keep it simple for the moment rather than a subscribe pattern we only register a callback from the only listener
+    # printing messages is instead made by calling static methods of the class UI
+    def subscribe(self, handler):
+        self.__eventHandlers.append(handler)
+
+    def dispatchEvent(self, event):
+        for h in self.__eventHandlers:
+            h.handle(event)
+
+
+    def __init__(self, id, s, d):
+        #
+        self.__ID = id
+        self.__status = s
+        self.__descriptor = d
+        self.__medialist = []
+
+
+
+
+    def addMedia(self, media):
+        media.setTalk(self)
+        self.__medialist.append(media)
+
+
+
+    def getID(self): return self.__ID
+    def getStatus(self): return self.__status
+    def getDescriptor(self): return self.__descriptor
+    def getMedia(self): return self.__medialist
+    # reset status goes trhough all media hosts, check them and update global status. Events are sent.
+    def resetStatus(self):pass
+
+
+
+
