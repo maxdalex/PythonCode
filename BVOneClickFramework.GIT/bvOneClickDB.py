@@ -1,4 +1,4 @@
-
+from bvOneClickConfig import *
 
 """
  This module provides the model layer of MVC. It defines data types and raised events" \
@@ -30,27 +30,24 @@ define a concrete Talk class in the BVOneClickFramework
 """
 
 
-class BVOneClickDB (object):
-    'singletone representing the DB module'
-
-    #ABSTRACT METHODS
+class OcuTalkJobManager (object):
+    'interface representing a platform to manage talk jobs'
     def openDB(self): pass
     def getTalkJobs(self): pass
 
 
-
-class TalkKeys (object):
-    'provides constant standardized keys for all relevants elements of a talk '
-    ID = 'id'
+class TalkJobKeys (object):
+    'provides constant standardized keys for all relevant elements of a talkjob '
+    #ID = 'id'
     STATUS = 'status'
     ACTION = 'action'
 
-    class BVMediaTypes:
+class BVMediaTypes:
         VIDEO = 'video'
         AUDIO = 'audio'
-        THUMB = 'thumb'
 
-    class Descriptor (object):
+class TalkDescriptorKeys (object):
+        ID = 'id'
         EDITOR = 'editor'
         DATE = 'date'
         TRAINER = 'trainer'
@@ -64,8 +61,8 @@ class TalkKeys (object):
         ACCESS = 'access'
         FNAME = 'filename'
         TITLE = 'title'
-        EXCPTCOMP = 'excerptcompof'
-        #UPLDPATTERN =  'pattern' # storage may not be needed as implicit in the list of media host : it culd be HWD, youtube, vimeo
+        EXCPTCOMP = 'excerptcompof' #excpert of or compilation of
+
 
 
 class TalkDescriptor (object):
@@ -79,13 +76,7 @@ class TalkDescriptor (object):
         return res
 
 
-class MediaThumbnail (object):
-    'thumbnails are associated to a media host.'
-    def __init__(self, url):
-        self.__url = url
-
-
-class MediaSource (object):
+class BVMediaSource (object):
     def toString(self): return self.url
     def __init__(self, srcurl, t, directives = None):
         'the attribute  params is a host dependent info carried along in the framework'
@@ -93,22 +84,24 @@ class MediaSource (object):
         self.url = srcurl
         self.directives = directives
 
-class BVMediaProcEventHandler (object):
-    'abstract class defining an handler'
-    def processSuccess(self, agent, handle,msg):pass
-    def processFailure(selfself, agent, msg):pass
+
+class BVAgentInterface (object):
+    def getId(self):pass
+    def subscribe(self, agenteventhandler): pass
 
 
-########################## WARNING: this needs a similar thing as a Src Process Agent ###########################
-# Let us use the same pattern used for host agent with source agents. Every media will be encapuslated in a
-# media agent. IN this agent we can have a event submission that works like in the host agents.
-# We can even have a superclass agent for that with just one event handler type.
+class BVAgentEventHandlerInterface (object):
+    'an interface defining a handler to deal with success/failure events'
+    def handleSuccess(self, agent, mediaHostHandle, msg ):pass
+    def handleFailure(self, agent, msg): pass
 
-class BVMediaProcAgent (object):
+class BVMediumProcAgent (BVAgentInterface):
     ' it is the processor of a specific media'
 
     # directives recognized
-    EXTRACTAUDIO = "_extract_"
+    AUDIOSOURCE = 'audiosource'
+    VIDEOSOURCE = 'videosource'
+    EXTRACTAUDIO = '_extract_'
 
     def __init__(self,key, ds):
         'ds should be a list'
@@ -117,7 +110,7 @@ class BVMediaProcAgent (object):
         self._directives =ds
         self._key = key
 
-    # it sends event like the agents.
+    # success/failure event .
     def subscribe(self, mediaProcEventHandler):
         self._eventHandlers.append(mediaProcEventHandler)
     def _dispatchSuccess(self, handle, msg):
@@ -126,18 +119,14 @@ class BVMediaProcAgent (object):
         for h in self._eventHandlers: h.processFailure(self, msg)
 
 
-    def setmedia (self, media): self._media = media
-    def getmedia (self): return self._media
-    def processMedia(self): pass
-    def getkey(self): return self._key
+    def setmedium (self, media): self._media = media
+    def getmedium (self): return self._media
+    def processMedium(self): pass
+    def getKey(self): return self._key
 
 
-
-
-
-class BVTalkMedia (object):
-    'A media has a media source and a list of hosts. If empty = is not hosted'
-    def isHosted(self): pass
+class BVTalkMedium (object):
+    'A medium has a medium source and a list of hosts.'
     def getType(self) : return self.__msrc.type
     def getPrimaryHost(self): return self.__phost
     def getOtherHosts(self): return self.__ohosts
@@ -157,24 +146,17 @@ class BVTalkMedia (object):
     def setTalk(self,t):
         self.__talk =t
 
-
     def setPrimaryHost(self, host):
         #ASSERT: when a host is added the media needs to be already associated to a talk
 
         self.__phost= host
 
-        # set my talk as the talk of the host
-        #talk = self.getTalk()
-        #host.setTalk(talk)
-
         #set myself as the media of the host
         host.setMedia(self)
 
-        #register the status handler
+        #register the talk status handler on the  new host
         handler = self.getTalk().getStatusHandler()
         host.subscribe(handler)
-
-
 
 
     def appendHostAgent(self, host):
@@ -185,40 +167,36 @@ class BVTalkMedia (object):
         # set myself as the media of the host
         host.setMedia(self)
 
-        #register the status handler
+        #register the talk status handler on the new host
         handler = self.getTalk().getStatusHandler()
         host.subscribe(handler)
 
     def setProcessAgent(self, pagent):
         #ASSERT: when a agent  is added the media needs to be already associated to a talk
         talk = self.getTalk()
-        self._pagent = pagent
+        self.__pagent = pagent
 
-        #register the status handler
+        #also sets itself as the medium of the process agent
+        pagent.setmedium(self)
+
+        #register the talk status handler n the new host
         handler = talk.getStatusHandler()
         pagent.subscribe(handler)
 
-    def getProcessAgent(self): return self._pagent
+    def getProcessAgent(self): return self.__pagent
 
     def __init__(self,  msrc):
-
         self.__talk = None
         self.__msrc =  msrc
         self.__phost = None
-        self._pagent = None
+        self.__pagent = None
         self.__ohosts = []
 
 
-# defined by subclasses
-class TalkMediaHostHandle (object):
-    def toString(self):pass
 
-class BVMediaHostEventHandler (object):
-    'Abstract Calss. we put an event handler straight into the agents.Keep it simple '
-    def uploadSuccess(self, agent, mediaHostHandle, msg ):pass
-    def uploadFailure(self, agent, msg): pass
 
-class BVMediaHostAgent (object):
+
+class BVMediaHostAgent (BVAgentInterface):
 
     """
     It is one of the  hosts of a media for a talk. It also includes the thumb for that media on this host
@@ -234,29 +212,22 @@ class BVMediaHostAgent (object):
     VIDEOTHUMB = '_videothumb'
     TRAINTHUMB = '_trainthumb'
 
-    #event types
-    UPLOAD_SUCCESS = 0
-    UPLOAD_FAILURE = -1
-
-
-    #def setTalk(self, t): __talk = t
-
-
+    #provides a success/failure event
     def subscribe(self,hostAgentEventHandler):
         self._eventHandlers.append(hostAgentEventHandler)
 
     def _dispatchSuccess(self, handle, msg ):
-        for h in self._eventHandlers: h.uploadSuccess(self, handle, msg)
+        for h in self._eventHandlers: h.handleSuccess(self, handle, msg)
 
     def _dispatchFailure(self, msg):
-        for h in self._eventHandlers: h.uploadFailure(self, msg)
+        for h in self._eventHandlers: h.handleFailure(self, msg)
 
+    # key is used to identify the agent
+    def getID(self): return self.__key
     def upload(self): pass
     def download(self, dest): pass
     def getStatus(self): pass
     def modify(self, attribute, value): pass
-    # key is used to identify the agent for I/O purpose
-    def getkey(self): return self.__key
 
     def setHandle(self, handle): self._handle = handle
     def getHandle(self): return self.__handle
@@ -281,141 +252,41 @@ class BVMediaHostAgent (object):
 ##################### TALK vs TALKJOB #####################
 # On 3rd of March 2015 I finally decide to give up the difference between talk and talk job. We only have talkjobs as the
 # configuration of agents is actually part of the job configuration. Keeping them seprate only complicates
-class BVTalk (object):
-    """
-    ######################## How the complex of a talk is created in the constructors #########################
 
-    1. A talk is created without media and hosts. Media are added with AddMEdia. AddMedia calls the setTalk in media.
-    2. A media is created on its own out of a talk and without media hosts.
-    2A. A media process agent is created from the media
-    2B. Before hosts are added the media (process agent) needs to be associated to a talk.
-    3. Media hosts are added  with appendHost appendHost calls the setMedia in host
-    3. A media host is created on its own and later added to a media with append host.
-    """
-
-    """
-    __eventHandlers = []
-
-    # SUBSCRIBE EVENTS: to keep it simple for the moment rather than a subscribe pattern we only register a callback from the only listener
-    # printing messages is instead made by calling static methods of the class UI
-    def subscribe(self, handler):
-        self.__eventHandlers.append(handler)
-
-    def dispatchEvent(self, event):
-        for h in self.__eventHandlers:
-            h.handle(event)
-
-    """
-
-
-    def subscribeToAllAgents(self, handler):
-        'subscribe the handler to all agents involved in the talk'
-        agents = self.getAllAgents()
-        for a in agents:
-            a.subscribe(handler)
-
-    def addMedia(self, media):
-        media.setTalk(self)
-        self.__medialist.append(media)
-
-
-
-    def getID(self): return self.__ID
-    def getDescriptor(self): return self.__descriptor
-    def getMedia(self): return self.__medialist
-    def getAllAgents(self):
-        'return a list with all proc and host agents configured in the talk'
-        agents = []
-        medialist = self.getMedia()
-        for m in medialist:
-            agents.extend(m.getAllAgents())
-
-        return agents
-
-    # reset status goes trhough all media hosts, check them and update global status. Events are sent.
-    #def resetStatus(self):pass
-
-
-#class BVTalkJob (object):
-    'represent a job to be done on a talk'
+class BVJobInterface (object):
+    'abstract class representing a job to be done on a talk'
     NOOP = 'NOOP'
     SKIP = 'SKIP'
-    UPLOAD = 'UPLOAD' # in case something went wrong it completes that part of uploads
+    UPLOAD = 'UPLOAD'
     REPLACE_VIDEO = 'replacevideo'
     REPLACE_AUDIO = 'replaceaudio'
     MODIFY_DESC = 'modifydesc'
 
-    class UpdateStatusHandler(BVMediaHostEventHandler, BVMediaProcEventHandler):
-        ' it is subscribed in all agents and update the state of the job when agents report their results'
+    def getStatusHandler(self):pass
+    def getAction(self): pass
+    def getStatus(self): pass
 
-        def processSuccess(self, agent, handle, msg):
-            key = agent.getkey()
-            self._status.updateItem(key, BVJobStatus.DONE)
-
-
-        def processFailure(self, agent, msg):
-             key = agent.getkey()
-             self._status.updateItem(key, BVJobStatus.NOTDONE)
-
-
-        def uploadSuccess(self, agent, handle, msg ):
-            key = agent.getkey()
-            self._status.updateItem(key, BVJobStatus.DONE)
+class BVTalkInterface (object):
+    'abstract class representing a BV talk'
+    def getID(self): pass
+    def getDescriptor(self): pass
+    def addMedium(self, medium):pass
+    def getMedia(self): pass
+    def getAllAgents(self):pass
+    def subscribeAgentsHandler(self, ocuAgentEventHndl):pass
+    'this will subscribe the handler to all agents of the talk'
 
 
-        def uploadFailure(self, agent, msg):
-           key = agent.getkey()
-           self._status.updateItem(key, BVJobStatus.NOTDONE)
 
 
-        def __init__(self, status):
-            self._status = status
-
-    ################################# end of class UpdateStatus Handler ###########################################
-
-    """
-    def _subscribeStatusHandler(self, talk, handler):
-        'it subscribe the handler to all agents'
-        agents = talk.getAllAgents()
-        for a in agents:
-            a.subscribe(handler)
-    """
-
-    def getStatusHandler(self):
-        return self._statusHandler
-    #def getTalk(self): return self.__talk
-    def getAction(self): return self.__action
-    def getStatus(self): return self._status
-
-
-    def __init__(self, id, descriptor, action, status):
-        self.__ID = id
-        self.__descriptor = descriptor
-        self.__action = action
-        self._status = status
-        self._statusHandler = BVTalk.UpdateStatusHandler(status)
-        self.__medialist = []
-"""
-        # subscribe the status handler
-        handler = self.UpdateStatusHandler(status)
-        self._subscribeStatusHandler(talk, handler)
-"""
-
-"""
- def __init__(self, id, d):
-        #
-        self.__ID = id
-        self.__descriptor = d
-        self.__medialist = []
-"""
-
-########################### end of class Talk ############################
 class BVJobStatus (object):
     'it contains a dictionary in which all the main agents of the job are listed with a value done/not done'
     # Status only contains entries for the agents that are activated in a configuration.
     # It is set dyamically when agents are called, not statically.
     NOTDONE = "failure"
     DONE = "ok"
+
+
 
     # We pass the key rather than the agent because in some cases these methods are called before the agent is created
     # at loading time. Status is an entity in itself carrying information on the dynamic configuration of agents
@@ -437,26 +308,222 @@ class BVJobStatus (object):
     def __init__(self):
         self._statedict = {}
 
+class OcuUploadPattern (object):
+    'it models a particular pattern of upload for a talk'
+    def isActive(self, agentKey):
+        directives = self.getDirectives(agentKey)
+        return (directives != '')
 
-########################################## MAIN TALK CLASS ###########################################################
-class BVTalkEventType (object):
-    NOTYPE = 0
-    FAILURE = -1
-    NEWMEDIAUPLOADED = 2
+    def isPrimary(self, agentKey):
+        id = agentKey.getKey()
+        list = (self.getDirectives(agentKey)).split(',')
+        res =  BVMediaHostAgent.PRIMARYHOST in list
+        return res
+
+    def getDirectives(self, agentKey):
+        if agentKey in self.__apattern: return self.__apattern[agentKey]
+        else : return self.__vpattern[agentKey]
+
+    def getHostVideoAgentsKeys(self):
+        res = []
+        for item in self.__vpattern :
+            agentkey = item[0]
+            if (agentkey != BVMediumProcAgent.VIDEOSOURCE) and (agentkey != BVMediumProcAgent.AUDIOSOURCE)\
+                    and self.isActive(agentkey):
+                res.append(agentkey)
+         return res
+
+    def getHostAudioAgentsKeys(self):
+        res = []
+        for item in self.__apattern:
+            agentkey = item[0]
+            if (agentkey != BVMediumProcAgent.VIDEOSOURCE) and (agentkey != BVMediumProcAgent.AUDIOSOURCE):
+                if self.isActive(agentkey): res.append(agentkey)
+
+         return res
+
+    def __init__(self, audiopattern, videopattern):
+        """
+        Example of pattern dicitonaries:
+        audiopattern = {
+            AUDIOSRC: "%s" % (BVMediaProcAgent.EXTRACTAUDIO),
+            HWDAUDIO: "%s,%s" % (UIdirectives.UPLOAD, UIdirectives.PRIMARYHOST),
+            S3AUDIO: ''
+        }
+
+        videopattern = {
+            VIDEOSRC:'',
+            YOUTUBE: "%s,%s" % (UIdirectives.UPLOAD, UIdirectives.PRIMARYHOST),
+            VIMEO: '',
+            HWDVIDEO: "%s,%s" % (UIdirectives.UPLOAD, UIdirectives.REMOTELNK),
+            S3VIDEO: ''
+        }
+        """
+        self.__apattern = audiopattern
+        self.__vpattern = videopattern
 
 
 
-class BVTalkEvent (object):
-    def __init__(self, talk, agent, type, message):
-        self.talk = talk
-        self.agent = agent
-        self.type = type
-        self.message = message
+class OcuTalkJobFactory (object):
+    'it provides methods to create a talk job with its composite structure'
 
 
-class BVTalkEventHandler (object):
-    'an abstract class for specific handlers to be subscribed'
-    def handle(self, event):pass
+    @staticmethod
+    def __valueToAction(v): return v
+    @staticmethod
+    def __valueToURL(v): return v
+    @staticmethod
+    def __valueToDate(v):
+        date =time.strptime(v, "%d/%m/%y")
+        return date
+    @staticmethod
+    def __valueToTagList(v): return v.split(UIdirectives.LISTDELIMITER)
+
+    @staticmethod
+    def createTalkDescriptor(stringDict):pass
+    'given a dictionary of strings it creates another dictionary with the right types (lists, dates, etc)'
+
+    @staticmethod
+    def createTalkJob(action, status,  talkdesc, videosrc, videothumb, uploadptrn, audiosrc=None):
+        'Given the basic input it creates the whole structure of a talk job'
+        """
+        all considered as a URL. fileds in talkdesc nedd to have the right type.
+        """
+
+        #################### Talk creation #######################
+        talkjob = BVTalkJob(talkdesc, action, status)
+
+        ######################## Media and Process Media Creation #######################
+        # video  medium
+        video = BVMediaSource(videosrc, BVMediaTypes.VIDEO)
+        videomedium = BVTalkMedium(video)
+
+        #add the video medium to the talkjob
+        talkjob.addMedium(videomedium)
+
+        #set the process agent for the video medium if needed
+        agentkey = BVMediumProcAgent.VIDEOSOURCE
+        if uploadptrn.isActive(agentkey) and (not status.isDone(agentkey)):
+            videoproc = BVOneClickConf.createVideoSrcProcAgent(agentkey, uploadptrn.getDirectives(agentkey))
+            videomedium.setProcessAgent(videoproc)
+
+        # audio medium
+        audio = BVMediaSource(audiosrc, BVMediaTypes.AUDIO)
+        audiomedium = BVTalkMedium(audio)
+
+        #add the audio medium to the talkjob
+        talkjob.addMedium(audiomedium)
+
+        #set the process agent for the video medium if needed
+        agentkey = BVMediumProcAgent.AUDIOSOURCE
+        if uploadptrn.isActive(agentkey) and (not status.isDone(agentkey)):
+            audioproc = BVOneClickConf.createAudioSrcProcAgent(agentkey, uploadptrn.getDirectives(agentkey))
+            audiomedium.setProcessAgent(audioproc)
+
+        ################  VIDEO Host Agents creation and setting in the medium ##########################
+
+        # get the list of video active hosts fot the upload pattern
+        hosts = uploadptrn.getHostVideoAgentKeys()
+        for hagentkey in hosts:
+            if not status.isDone(hagentkey):
+                # creates the medium host
+                host = BVOneClickConf.createHostAgent(hagentkey, videothumb, uploadptrn.getDirectives(hagentkey))
+                # add the host to the video medium
+                if uploadptrn.isPrimary(hagentkey):
+                    videomedium.setPrimaryHost(host)
+                else:
+                    videomedium.appendHostAgent(host)
+
+        ################  AUDIO Host Agents creation and setting in the medium ##########################
+
+        # get the list of audio  active hosts fot the upload pattern
+        hosts = uploadptrn.getHostAudioAgentKeys()
+        for hagentkey in hosts:
+            if not status.isDone(hagentkey):
+                # creates the medium host
+                host = BVOneClickConf.createHostAgent(hagentkey, videothumb, uploadptrn.getDirectives(hagentkey))
+                # add the host to the audio medium
+                if uploadptrn.isPrimary(hagentkey):
+                    audiomedium.setPrimaryHost(host)
+                else:
+                    audiomedium.appendHostAgent(host)
+
+        return talkjob
+
+
+class BVTalkJob (BVJobInterface, BVTalkInterface):
+    """
+    ######################## How the complex of a talk is created in the constructors #########################
+
+    1. A talk is created without media and hosts. Media are added with AddMEdia. AddMedia calls the setTalk in media.
+    2. A medium is created on its own out of a talk and without media hosts.
+    2A. A media process agent is created from the media
+    2B. Before hosts are added the media (process agent) needs to be associated to a talk.
+    3. Media hosts are added  with appendHost appendHost calls the setMedia in host
+    3. A media host is created on its own and later added to a media with append host.
+    """
+
+    #######  BEGIN Talk Interface implementation ###########
+    def subscribeAgentsHandler(self, ocuAgentEventHndl):
+        'subscribe the agent handler to all agents of the talk'
+        agents = self.getAllAgents()
+        for a in agents:
+            a.subscribe(ocuAgentEventHndl)
+
+    def addMedium(self, medium):
+        medium.setTalk(self)
+        self.__medialist.append(medium)
+
+
+    def getID(self): return self.__ID
+    def getDescriptor(self): return self.__descriptor
+    def getMedia(self): return self.__medialist
+    def getAllAgents(self):
+        'return a list with all proc and host agents configured in the talk'
+        agents = []
+        medialist = self.getMedia()
+        for m in medialist:
+            agents.extend(m.getAllAgents())
+
+        return agents
+    ################ END  Talk Interface Implementation ##################
+
+    ################ BEGIN Job Interface Implementation ##################
+    def getStatusHandler(self):
+        return self._statusHandler
+
+    def getAction(self): return self.__action
+    def getStatus(self): return self._status
+    ############### END Job Interface Implementation ##################
+
+    # Agents handler of the Talk
+    class _UpdateStatusHandler(BVAgentEventHandlerInterface):
+        'Private class of the Talk : it is the event handler that keeps the job status updated after agents actions'
+
+        def handleSuccess(self, agent, handle, msg):
+            key = agent.getKey()
+            self._status.updateItem(key, BVJobStatus.DONE)
+
+        def handleFailure(self, agent, msg):
+             key = agent.getKey()
+             self._status.updateItem(key, BVJobStatus.NOTDONE)
+
+        def __init__(self, status):
+            self._status = status
+    # end agent handler
+
+    def __init__(self,  descriptor, action, status):
+        self.__ID = descriptor[TalkDescriptorKeys.ID]
+        self.__descriptor = descriptor
+        self.__action = action
+        self._status = status
+        self._statusHandler = BVTalkJob._UpdateStatusHandler(status)
+        self.__medialist = []
+
+########################### end of class Talk ############################
+
+
+
 
 
 
