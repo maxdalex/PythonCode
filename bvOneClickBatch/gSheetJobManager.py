@@ -2,16 +2,17 @@ import gspread
 from bvOneClickMD import *
 from bvOneClickCT import *
 from bvOneClickUtils import *
-from youtubeMediaHostAgent import *
-from vimeoMediaHostAgent import *
-from s3MediaHost import *
-from hwdMediaHost import *
-from mp3id3MediaProcAgent import *
-from mp4MediaProcAgent import *
 
 
 SPREADSHEET= '1dwjdmi77m9gVFts5WYawy_k11LekmB7ejjo-5VkU0QQ'
 LISTDELIMITER =','
+
+YOUTUBE = 'youtube'
+VIMEO = 'vimeo'
+HWDVIDEO = 'hwdvideo'
+HWDAUDIO = 'hwdaudio'
+S3VIDEO = 's3video'
+S3AUDIO = 's3audio'
 
 log = BVOneClickMessageLog('gspreadUIDB')
 
@@ -27,12 +28,16 @@ VIDEOTHUMB = BVMediaHostAgent.VIDEOTHUMB
 TRAINTHUMB = BVMediaHostAgent.TRAINTHUMB
 
 #sheet columns names
-YOUTUBE = BVOneClickConf.YOUTUBE
+
+
+"""
+YOUTUBE = Names.YOUTUBE
 VIMEO = BVOneClickConf.VIMEO
 HWDAUDIO = BVOneClickConf.HWDAUDIO
 HWDVIDEO = BVOneClickConf.HWDVIDEO
 S3AUDIO = BVOneClickConf.S3AUDIO
 S3VIDEO = BVOneClickConf.S3VIDEO
+"""
 
 VIDEOSRC = BVMediumProcAgent.VIDEOSOURCE
 AUDIOSRC = BVMediumProcAgent.AUDIOSOURCE
@@ -206,7 +211,7 @@ class GSheetMapper (object):
 
 
 
-class GSheetJobManager (OcuTalkJobManager) :
+class GSheetJobManager (OcuJobManagerInterface) :
     #__talksJobs is inherited from the superclass
     #worksheet manager
 

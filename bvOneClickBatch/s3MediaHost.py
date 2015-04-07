@@ -7,7 +7,7 @@ _log = BVOneClickMessageLog('S3MediaHostAgent')
 
 class S3VideoMediaHostAgent(BVMediaHostAgent):
      def __initSubclass(self, key, thumb, ds):
-        _log.stderr(' created for Talk %s'%(self.getTalk().getID()))
+         _log.stderr(' created for Talk %s'%(self.getTalk().getID()))
 
      def upload(self):
         _log.stderr('Talk %s: hosting not yet implemented'%(self.getTalk().getID()))
@@ -15,9 +15,9 @@ class S3VideoMediaHostAgent(BVMediaHostAgent):
 
 
 class S3AudioMediaHostAgent(BVMediaHostAgent):
-     def __initSubclass(self, key, thumb, ds):
-         _log.stderr(' created for Talk %s'%(self.getTalk().getID()))
+     def  __initSubclass(self, key, thumb, ds):
+          _log.stderr(' created for Talk %s'%(self.getTalk().getID()))
 
-    def upload(self):
+     def upload(self):
         _log.stderr('Talk %s: hosting not yet implemented'%(self.getTalk().getID()))
         self._dispatchFailure('ERROR: video not uploaded')

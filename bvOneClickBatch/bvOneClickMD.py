@@ -1,7 +1,28 @@
-from bvOneClickConfig import *
+import time
 
 
-class OcuTalkJobManager (object):
+class OcuModelFactory (object):
+    #Singletone factory to create agents hiding their concrete class
+
+    # factory methods used as objects
+    haFactoryMethod = None
+    audioPaFactoryMethod = None
+    videoPaFactoryMethod =None
+
+    @staticmethod
+    def createHostAgent(akey, videothumb, directives):
+        return OcuModelFactory.haFactoryMethod(akey, videothumb, directives)
+
+    @staticmethod
+    def createAudioSrcProcAgent(key,directives):
+        return OcuModelFactory.audioPaFactoryMethod(key, directives)
+
+    @staticmethod
+    def createVideoSrcProcAgent(key,directives):
+        return OcuModelFactory.videoPaFactoryMethod(key,directives)
+
+
+class OcuJobManagerInterface (object):
     'interface representing a platform to manage talk jobs'
     def openDB(self): pass
     def getTalkJobs(self): pass
@@ -252,7 +273,7 @@ class OcuTalkDescriptor (object):
         #date format = dd/mm/yyyy;
 
         if key == OcuTalkDescriptor.TAGS:
-            tlist = svalue.split(LISTDELIMITER)
+            tlist = svalue.split(OcuTalkDescriptor.LISTDELIMITER)
             self.__descdict[key]=tlist
 
         elif key == OcuTalkDescriptor.DATE:
@@ -349,7 +370,7 @@ class OcuTalkJobFactory (object):
         #set the process agent for the video medium if needed
         agentkey = BVMediumProcAgent.VIDEOSOURCE
         if uploadptrn.isActive(agentkey) and (not status.isDone(agentkey)):
-            videoproc = BVOneClickConf.createVideoSrcProcAgent(agentkey, uploadptrn.getDirectives(agentkey))
+            videoproc = OcuModelFactory.createVideoSrcProcAgent(agentkey, uploadptrn.getDirectives(agentkey))
             videomedium.setProcessAgent(videoproc)
 
         # audio medium
@@ -362,7 +383,7 @@ class OcuTalkJobFactory (object):
         #set the process agent for the video medium if needed
         agentkey = BVMediumProcAgent.AUDIOSOURCE
         if uploadptrn.isActive(agentkey) and (not status.isDone(agentkey)):
-            audioproc = BVOneClickConf.createAudioSrcProcAgent(agentkey, uploadptrn.getDirectives(agentkey))
+            audioproc = OcuModelFactory.createAudioSrcProcAgent(agentkey, uploadptrn.getDirectives(agentkey))
             audiomedium.setProcessAgent(audioproc)
 
         ################  VIDEO Host Agents creation and setting in the medium ##########################
@@ -372,7 +393,7 @@ class OcuTalkJobFactory (object):
         for hagentkey in hosts:
             if not status.isDone(hagentkey):
                 # creates the medium host
-                host = BVOneClickConf.createHostAgent(hagentkey, videothumb, uploadptrn.getDirectives(hagentkey))
+                host = OcuModelFactory.createHostAgent(hagentkey, videothumb, uploadptrn.getDirectives(hagentkey))
                 # add the host to the video medium
                 if uploadptrn.isPrimary(hagentkey):
                     videomedium.setPrimaryHost(host)
@@ -386,7 +407,7 @@ class OcuTalkJobFactory (object):
         for hagentkey in hosts:
             if not status.isDone(hagentkey):
                 # creates the medium host
-                host = BVOneClickConf.createHostAgent(hagentkey, videothumb, uploadptrn.getDirectives(hagentkey))
+                host = OcuModelFactory.createHostAgent(hagentkey, videothumb, uploadptrn.getDirectives(hagentkey))
                 # add the host to the audio medium
                 if uploadptrn.isPrimary(hagentkey):
                     audiomedium.setPrimaryHost(host)

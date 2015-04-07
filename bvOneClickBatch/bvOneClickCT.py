@@ -7,7 +7,8 @@ _log = BVOneClickMessageLog('bvOneClickCT')
 class BVControlProcess (object):
 
     ### MAIN JOB PROCESSING ####
-    def processJob(self, talk):
+    @staticmethod
+    def processJob(talk):
         assert isinstance(talk, BVTalkJob)
 
         # If the action is NOOP return immediately
