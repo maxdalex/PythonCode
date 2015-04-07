@@ -1,27 +1,16 @@
-from  gspreadUIDB import *
-from  mp3id3MediaProcAgent import *
-from  mp4MediaProcAgent import *
+from bvOneClickConfig import *
 import os.path
 
-' This is the only module that needs to be modIfied for different implentTIONS OF THE FRAMEWORK'
-
-################################ Framework Configuration ##################################################
-class BVOneClickConf:
-    'singletone and factory to provide the concrete instance of all abstract classes to the main of the BVOneClickFramework'
-
-    def getDB(self): return DBgspread()
-    def getUI(self): return UIgspread()
-    def getAudioSrcProc(self): return MP3ID3SMediaProcAgent()
-    def getVideoSrcProc(self): return MP4MediaProcAgent()
 
 
 ############################## Framework MAIN #################################
+# This allows the system to be run as a batch executable, directly fetching jobs from the
+# Job Manager DataBase. For interactive behaviour see processJob() method in CT module
 if __name__ == '__main__':
 
-        conf = BVOneClickConf()
-        #get concrete elements from the configurator: user interface, data base, src file processor, control
-        ui = conf.getUI()
-        db = conf.getDB()
+        # retrieves ui and db from the framework configuration
+        ui =  BVOneClickConf.getUI()
+        db =  BVOneClickConf.getDB()
 
         #Initialize the DB
         db.openDB()
@@ -30,17 +19,12 @@ if __name__ == '__main__':
         talkjobs = db.getTalkJobs()
 
         # intialize the UI with the list of talk jobs.
-        ui.initialize(talkjobs)
-
-        #specific source processors (not required, UIDB does everything)
-        #audioproc = conf.getAudioSrcProc()
-        #videoproc = conf.getVideoSrcProc()
+        ui.initializeUI(talkjobs)
 
         # create the job processor
-        #ct = BVControlProcess([audioproc, videoproc])
-        ct = BVControlProcess()
+        ct = BVOneClickConf.getCT()
 
         for j in talkjobs:
-            ct.processjob(j)
+            ct.processJob(j)
 
-        ######## END POF MAIN ###############
+################################################ END OF MAIN ###############

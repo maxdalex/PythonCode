@@ -1,5 +1,5 @@
-from bvOneClickDB import *
-from bvOneClickUI import *
+from bvOneClickMD import *
+from bvOneClickUtils import *
 
 
 #### module confuguration ########
@@ -7,8 +7,8 @@ _log = BVOneClickMessageLog('vimeoHostAgent')
 
 class VimeoMediaHostAgent (BVMediaHostAgent):
 
-    def __init__(self, key, thumb, ds):
-     super(VimeoMediaHostAgent, self).__init__(key, thumb,ds)
+    def __initSubclass(self, key, thumb, ds):
+     _log.stderr(' created for Talk %s'%(self.getTalk().getID()))
 
     def upload(self):
         _log.stderr('Talk %s: hosting not yet implemented'%(self.getTalk().getID()))

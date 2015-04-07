@@ -1,15 +1,14 @@
-from bvOneClickDB import *
-from bvOneClickUI import *
+from bvOneClickMD import *
+from bvOneClickUtils import *
 
 _log = BVOneClickMessageLog('YouTubeMediaHostAgent')
 
 
 
-
 class YoutubeMediaHostAgent (BVMediaHostAgent):
 
-    def __init__(self, key, thumb, ds):
-     super(YoutubeMediaHostAgent, self).__init__(key, thumb,ds)
+    def __initSubclass(self, key, thumb, ds):
+     _log.stderr(' created for Talk %s'%(self.getTalk().getID()))
 
     def upload(self):
         _log.stderr('Talk %s: hosting not yet implemented'%(self.getTalk().getID()))

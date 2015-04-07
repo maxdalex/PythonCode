@@ -7,8 +7,8 @@ import base64
 import time
 
 from bvOneClickCT import *
-from bvOneClickDB import *
-from bvOneClickUI import BVOneClickMessageLog
+from bvOneClickMD import *
+from bvOneClickUtils import BVOneClickMessageLog
 
 #### module confuguration ########
 _log = BVOneClickMessageLog('mp3id3AudioProc')
@@ -49,39 +49,39 @@ bitrate = '128k'
 class ID3Map (object):
     def getComment(self):
         date = '_Date: '+ self.getDate()
-        tags = '_Tags: '+ ''.join(self.__dscr[TalkKeys.Descriptor.TAGS])
-        category = '_Category: '+ self.__dscr[TalkKeys.Descriptor.CATEGORY]
-        description =  '_Description: '+ self.__dscr[TalkKeys.Descriptor.DESC]
-        access =  '_Access: '+ self.__dscr[TalkKeys.Descriptor.ACCESS]
-        language =  '_Language: '+ self.__dscr[TalkKeys.Descriptor.LANGUAGE]
-        excerpt = '_ExcerptCompOf: '+ self.__dscr[TalkKeys.Descriptor.EXCPTCOMP]
-        id = '_TalkID: ' + self.__talk.getID()
+        tags = '_Tags: '+ ''.join(self.__dscr[OcuTalkDescriptor.TAGS])
+        category = '_Category: '+ self.__dscr[OcuTalkDescriptor.CATEGORY]
+        description =  '_Description: '+ self.__dscr[OcuTalkDescriptor.QUOTE]
+        access =  '_Access: '+ self.__dscr[OcuTalkDescriptor.ACCESS]
+        language =  '_Language: '+ self.__dscr[OcuTalkDescriptor.LANGUAGE]
+        excerpt = '_ExcerptCompOf: '+ self.__dscr[OcuTalkDescriptor.EXCPTCOMP]
+        id = '_TalkID: ' + self.__talk.getKey()
 
         comment = date + '\n' + tags + '\n' + category + '\n'  + description + '\n' + access + '\n'  + language + '\n'  + excerpt + '\n'+ id
 
         return  unicode(comment, "utf-8")
 
     def getAlbum(self):
-        a = self.__dscr[TalkKeys.Descriptor.CONTEXT]
+        a = self.__dscr[OcuTalkDescriptor.CONTEXT]
         return unicode(a, "utf-8")
 
     def getAlbumArtist(self):
         return u"Balanced View"
 
     def getArtist(self):
-        a = 'Balanced View ' +  self.__dscr[TalkKeys.Descriptor.TRAINER]
+        a = 'Balanced View ' +  self.__dscr[OcuTalkDescriptor.TRAINER]
         return unicode(a, "utf-8")
 
     def getTitle(self):
-        a =  self.getDate() + ' '+ self.__dscr[TalkKeys.Descriptor.TRAINER] + ':' + self.__dscr[TalkKeys.Descriptor.TITLE]
+        a =  self.getDate() + ' '+ self.__dscr[OcuTalkDescriptor.TRAINER] + ':' + self.__dscr[OcuTalkDescriptor.TITLE]
         return unicode(a, "utf-8")
 
     def getSubtitle(self):
-        a = self.__dscr[TalkKeys.Descriptor.CONTEXT]
+        a = self.__dscr[OcuTalkDescriptor.CONTEXT]
         return unicode(a, "utf-8")
 
     def getPublisher(self):
-        a = self.__dscr[TalkKeys.Descriptor.EDITOR]
+        a = self.__dscr[OcuTalkDescriptor.EDITOR]
         return unicode(a, "utf-8")
 
     def getFrontCover(self):
@@ -89,6 +89,7 @@ class ID3Map (object):
         image = base64.b64decode(bvlogob64)
         return image
         """
+        example taken form stackoverflow:
         import base64
         >>> encoded = base64.b64encode('data to be encoded')
         >>> encoded
@@ -100,21 +101,21 @@ class ID3Map (object):
         :return:
         """
     def getYear(self):
-        date = self.__dscr[TalkKeys.Descriptor.DATE]
+        date = self.__dscr[OcuTalkDescriptor.DATE]
         year = time.strftime("%Y", date )
         return unicode(year, "utf-8")
     def getDate(self):
-        date = self.__dscr[TalkKeys.Descriptor.DATE]
+        date = self.__dscr[OcuTalkDescriptor.DATE]
         s = time.strftime("%d/%m/%y", date)
         return s
 
     def __init__(self,talk):
-        self.__dscr = talk.getDescriptor()
+        self.__dscr = talk.getBasicDescriptor()
         self.__talk = talk
 
 
 
-class MP3ID3SMediaProcAgent (BVMediaProcAgent):
+class MP3ID3SMediumProcAgent (BVMediumProcAgent):
 
     def __extractAudioFromVideo(self,video, fname):
         # return an a media source of type audio
@@ -148,7 +149,7 @@ class MP3ID3SMediaProcAgent (BVMediaProcAgent):
         #cmd = "ffmpeg -y -t 30 -i " + audiopath + "-acodec copy "
         #_log.stderr('WARNING:  Trimming audio is not yet implemented')
 
-        return MediaSource(audiopath, TalkKeys.BVMediaTypes.AUDIO)
+        return BVMediaSource(audiopath, BVMediaTypes.AUDIO)
 
 
 
@@ -221,22 +222,21 @@ class MP3ID3SMediaProcAgent (BVMediaProcAgent):
         command = "eyed3 --artist %s --album %s --album-artist %s --title %s --comment %s --publisher %s" % (artist, album, album_artist, title, comments, publisher, coverfpath )
     """
 
-    def processMedia(self):
+    def processMedium(self):
         'rememebr that if the process is not required it is not called'
 
-        talk = self.getmedia().getTalk()
-        handle = self.getmedia().getSource().url
-        _log.stdout('extract and tag audio for '+ talk.getID())
+        talk = self.getmedium().getTalk()
+        handle = self.getmedium().getSource().url
+        _log.stdout('extract and tag audio for '+ talk.getKey())
 
         #find the video source
         media = talk.getMedia()
         video = None
         for m in media:
-            if m.getType() == TalkKeys.BVMediaTypes.VIDEO: video = m.getSource()
+            if m.getType() == BVMediaTypes.VIDEO: video = m.getSource()
 
-        #remember that FNAME has no suffix
-        key = TalkKeys.Descriptor.FNAME
-        fpath = talk.getDescriptor()[key]+'.mp3'
+        #create the filepath
+        fpath = talk.getFileNamePrefix()+'.mp3'
 
         audio = self.__extractAudioFromVideo(video, fpath)
 
@@ -249,4 +249,4 @@ class MP3ID3SMediaProcAgent (BVMediaProcAgent):
         return
 
     def __init__(self, key, ds):
-        super(MP3ID3SMediaProcAgent, self).__init__(key, ds)
+        super(MP3ID3SMediumProcAgent, self).__init__(key, ds)

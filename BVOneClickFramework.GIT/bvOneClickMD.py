@@ -1,34 +1,5 @@
 from bvOneClickConfig import *
 
-"""
- This module provides the model layer of MVC. It defines data types and raised events" \
-" Many of the classes are abstract classes needed to be refined by the implementation details of real DB used" \
-" in the first version the DB is implemented with google spread" \
-
-Model:
- - a talk has several media
- - each media has a media proc agent which process the source file
- - each media can have one or more media hosts
- - one of the media hosts of a media is considered the primary media and is where is relied upon for retrieval
- - in the UI there is a column for each media host and media proc and a handler is registered on the media host and proc
-
-NOTE: Every media host will use a specific handle to manage the hosted talk. Where are these hndles stored?
-Best is that specific instance variables represnts instances of hosts within the talk rather than having
-singletones around. REfine this idea. The Tak HOstingCOntrol needs to be an instance variable to store
-the implementation dependent handlers for that particular talk.
-
-Also different talks can have a different set of hosts, like be only on outube or only on viemo. So it is good
-to have the HostControlObject passed to the constructor!
-
-23/1/15
-I realize I took an extreme approach wanting to see all action made on a talk as a method of the Talk class. It is better
-to use a more balanced approach were some of the processing is made in separate classes on a Talk instance, This allow to
-define a concrete Talk class in the BVOneClickFramework
-
-
-
-"""
-
 
 class OcuTalkJobManager (object):
     'interface representing a platform to manage talk jobs'
@@ -43,37 +14,8 @@ class TalkJobKeys (object):
     ACTION = 'action'
 
 class BVMediaTypes:
-        VIDEO = 'video'
-        AUDIO = 'audio'
-
-class TalkDescriptorKeys (object):
-        ID = 'id'
-        EDITOR = 'editor'
-        DATE = 'date'
-        TRAINER = 'trainer'
-        CONTEXT = 'context'
-        LANGUAGE = 'language'
-        DESC = 'description'
-        SEODESC = 'seodesc'
-        TAGS = 'tags'
-        SEOTAGS = 'seotags'
-        CATEGORY = 'category'
-        ACCESS = 'access'
-        FNAME = 'filename'
-        TITLE = 'title'
-        EXCPTCOMP = 'excerptcompof' #excpert of or compilation of
-
-
-
-class TalkDescriptor (object):
-    ' Due to the number of fields descriptor is implemtented as a dictionary to be safer and more extendible'
-
-    def __init__(self, d):
-        self.__descdict = d
-
-    def getValue(self, key):
-        res = self.__descdict[key]
-        return res
+    VIDEO = 'video'
+    AUDIO = 'audio'
 
 
 class BVMediaSource (object):
@@ -197,14 +139,8 @@ class BVTalkMedium (object):
 
 
 class BVMediaHostAgent (BVAgentInterface):
+    'An agent managing the hosting of a particular medium of a talk on a certain platform. It is a concrete class with abstract methods'
 
-    """
-    It is one of the  hosts of a media for a talk. It also includes the thumb for that media on this host
-    A Media host only hosts one media. Even if the platform is the same, different media hosts instances
-    are used for different media.
-
-    A media host is created without any association to a talk and then instantiated with a talk
-    """
     #recognized directives
     PRIMARYHOST = '_primary'
     UPLOAD = '_upload'
@@ -212,10 +148,20 @@ class BVMediaHostAgent (BVAgentInterface):
     VIDEOTHUMB = '_videothumb'
     TRAINTHUMB = '_trainthumb'
 
+    # ABSTRACT METHODS: actions of the agent to be implemented in the subclasses
+    # provided in the configuratin of the framework
+    def upload(self): pass
+
+    def _initSubclass(self,key, thumb, ds ): pass
+    'this is the initializer of the subclass called at the end of the constructor'
+    # This avoid for the subclass to need to call the constructor of the superclass in tis own constructor if needed
+    # end ABSTRACT METHODS
+
     #provides a success/failure event
     def subscribe(self,hostAgentEventHandler):
         self._eventHandlers.append(hostAgentEventHandler)
 
+    # event dispatching private methods
     def _dispatchSuccess(self, handle, msg ):
         for h in self._eventHandlers: h.handleSuccess(self, handle, msg)
 
@@ -224,16 +170,10 @@ class BVMediaHostAgent (BVAgentInterface):
 
     # key is used to identify the agent
     def getID(self): return self.__key
-    def upload(self): pass
-    def download(self, dest): pass
-    def getStatus(self): pass
-    def modify(self, attribute, value): pass
 
-    def setHandle(self, handle): self._handle = handle
-    def getHandle(self): return self.__handle
     def setMedia(self, media) : self.__media = media
     def getMedia(self): return self.__media
-    def getThumb(self): return self.__thumb
+
     def getTalk(self): return self.getMedia().getTalk()
     def getDirectives(self): return self.__directives#list
 
@@ -247,36 +187,8 @@ class BVMediaHostAgent (BVAgentInterface):
         self.__key = key
         self._eventHandlers = []
 
-
-
-##################### TALK vs TALKJOB #####################
-# On 3rd of March 2015 I finally decide to give up the difference between talk and talk job. We only have talkjobs as the
-# configuration of agents is actually part of the job configuration. Keeping them seprate only complicates
-
-class BVJobInterface (object):
-    'abstract class representing a job to be done on a talk'
-    NOOP = 'NOOP'
-    SKIP = 'SKIP'
-    UPLOAD = 'UPLOAD'
-    REPLACE_VIDEO = 'replacevideo'
-    REPLACE_AUDIO = 'replaceaudio'
-    MODIFY_DESC = 'modifydesc'
-
-    def getStatusHandler(self):pass
-    def getAction(self): pass
-    def getStatus(self): pass
-
-class BVTalkInterface (object):
-    'abstract class representing a BV talk'
-    def getID(self): pass
-    def getDescriptor(self): pass
-    def addMedium(self, medium):pass
-    def getMedia(self): pass
-    def getAllAgents(self):pass
-    def subscribeAgentsHandler(self, ocuAgentEventHndl):pass
-    'this will subscribe the handler to all agents of the talk'
-
-
+        #complete with subclass initiliazation
+        self._initSubclass(key, thumb, ds)
 
 
 class BVJobStatus (object):
@@ -286,8 +198,6 @@ class BVJobStatus (object):
     NOTDONE = "failure"
     DONE = "ok"
 
-
-
     # We pass the key rather than the agent because in some cases these methods are called before the agent is created
     # at loading time. Status is an entity in itself carrying information on the dynamic configuration of agents
     def isDone(self, agentkey):
@@ -295,7 +205,6 @@ class BVJobStatus (object):
         return (dict.has_key(agentkey)) and (dict[agentkey] == BVJobStatus.DONE)
 
     def addItem(self, agentkey, code = "failure"):
-        # sorry. I put the string because syntax errors
            self._statedict[agentkey]= code
 
     def updateItem(self, agentkey, value):
@@ -308,8 +217,60 @@ class BVJobStatus (object):
     def __init__(self):
         self._statedict = {}
 
-class OcuUploadPattern (object):
-    'it models a particular pattern of upload for a talk'
+class OcuTalkDescriptor (object):
+    ' This class is useful to compact the talk basic fields in one object dictionary'
+
+    LISTDELIMITER =','
+
+    ID = 'id'
+    EDITOR = 'editor'
+    DATE = 'date'
+    TRAINER = 'trainer'
+    CONTEXT = 'context'
+    LANGUAGE = 'language'
+    QUOTE = 'quote'
+    #SEODESC = 'seodesc'
+    TAGS = 'tags'
+    #SEOTAGS = 'seotags'
+    CATEGORY = 'category'
+    ACCESS = 'access'
+    #FNAME = 'filename' #deprecated
+    TITLE = 'title'
+    EXCPTCOMP = 'excerptcompof' #excpert of or compilation of
+
+    def __init__(self):
+        self.__descdict = {}
+
+    def getValue(self, key):
+        res = self.__descdict[key]
+        return res
+    def setValue(self,key, value):
+        self.__descdict[key]=value
+
+    def setValueAsString(self, key, svalue):
+        'it accepts a string value and convert it in the appropriate type within the descriptor'
+        #date format = dd/mm/yyyy;
+
+        if key == OcuTalkDescriptor.TAGS:
+            tlist = svalue.split(LISTDELIMITER)
+            self.__descdict[key]=tlist
+
+        elif key == OcuTalkDescriptor.DATE:
+            date = time.strptime(svalue, "%d/%m/%y")
+            self.__descdict[key]=date
+
+        else: self.setValue(key,svalue)
+
+    def importFromStringDict(self, stringDict):
+       'it set all values of the given string dictionary converting them in the appropriate type in the descriptor'
+       for item in stringDict:
+            key = item[0]
+            value = item[1]
+            self.setValueAsString(key, value)
+
+class OcuJobAgentsPattern (object):
+    'The  pattern decides what/how/where media of a talk are given a process or hosting agent'
+
     def isActive(self, agentKey):
         directives = self.getDirectives(agentKey)
         return (directives != '')
@@ -328,10 +289,10 @@ class OcuUploadPattern (object):
         res = []
         for item in self.__vpattern :
             agentkey = item[0]
-            if (agentkey != BVMediumProcAgent.VIDEOSOURCE) and (agentkey != BVMediumProcAgent.AUDIOSOURCE)\
-                    and self.isActive(agentkey):
-                res.append(agentkey)
-         return res
+            if (agentkey != BVMediumProcAgent.VIDEOSOURCE) and (agentkey != BVMediumProcAgent.AUDIOSOURCE):
+                if self.isActive(agentkey):
+                  res.append(agentkey)
+        return res
 
     def getHostAudioAgentsKeys(self):
         res = []
@@ -340,48 +301,32 @@ class OcuUploadPattern (object):
             if (agentkey != BVMediumProcAgent.VIDEOSOURCE) and (agentkey != BVMediumProcAgent.AUDIOSOURCE):
                 if self.isActive(agentkey): res.append(agentkey)
 
-         return res
+        return res
 
-    def __init__(self, audiopattern, videopattern):
+    def __init__(self, agentsptn):
         """
-        Example of pattern dicitonaries:
-        audiopattern = {
-            AUDIOSRC: "%s" % (BVMediaProcAgent.EXTRACTAUDIO),
-            HWDAUDIO: "%s,%s" % (UIdirectives.UPLOAD, UIdirectives.PRIMARYHOST),
-            S3AUDIO: ''
-        }
-
-        videopattern = {
-            VIDEOSRC:'',
-            YOUTUBE: "%s,%s" % (UIdirectives.UPLOAD, UIdirectives.PRIMARYHOST),
-            VIMEO: '',
-            HWDVIDEO: "%s,%s" % (UIdirectives.UPLOAD, UIdirectives.REMOTELNK),
-            S3VIDEO: ''
-        }
+        Example of pattern :
+         pattern = {
+                AUDIO: {
+                    AUDIOSRC: "%s" % (BVMediumProcAgent.EXTRACTAUDIO),
+                    HWDAUDIO: "%s,%s" % (UPLOAD, PRIMARYHOST),
+                    S3AUDIO: ''
+                },
+                VIDEO: {
+                    VIDEOSRC:'',
+                    YOUTUBE: "%s,%s" % (UPLOAD, PRIMARYHOST),
+                    VIMEO: '',
+                    HWDVIDEO: "%s,%s" % (UPLOAD, REMOTELNK),
+                    S3VIDEO: ''
+                }
+         }
         """
-        self.__apattern = audiopattern
-        self.__vpattern = videopattern
-
+        self.__apattern = agentsptn[BVMediaTypes.AUDIO]
+        self.__vpattern = agentsptn[BVMediaTypes.VIDEO]
 
 
 class OcuTalkJobFactory (object):
     'it provides methods to create a talk job with its composite structure'
-
-
-    @staticmethod
-    def __valueToAction(v): return v
-    @staticmethod
-    def __valueToURL(v): return v
-    @staticmethod
-    def __valueToDate(v):
-        date =time.strptime(v, "%d/%m/%y")
-        return date
-    @staticmethod
-    def __valueToTagList(v): return v.split(UIdirectives.LISTDELIMITER)
-
-    @staticmethod
-    def createTalkDescriptor(stringDict):pass
-    'given a dictionary of strings it creates another dictionary with the right types (lists, dates, etc)'
 
     @staticmethod
     def createTalkJob(action, status,  talkdesc, videosrc, videothumb, uploadptrn, audiosrc=None):
@@ -451,6 +396,56 @@ class OcuTalkJobFactory (object):
         return talkjob
 
 
+class BVJobInterface (object):
+    'abstract class representing a job to be done on a talk'
+    NOOP = 'NOOP'
+    SKIP = 'SKIP'
+    UPLOAD = 'UPLOAD'
+    REPLACE_VIDEO = 'replacevideo'
+    REPLACE_AUDIO = 'replaceaudio'
+    MODIFY_DESC = 'modifydesc'
+
+    def getStatusHandler(self):pass
+    def getAction(self): pass
+    def getStatus(self): pass
+
+class BVTalkInterface (object):
+    'abstract class representing a BV talk'
+
+    #immutable ID
+    def getID(self): pass
+
+    # basic fields
+    def getEditor(self): pass
+    def getDate(self):pass
+    def getTrainer(self):pass
+    def getContext(self):pass
+    def getLanguage(self):pass
+    def getQuote(self):pass
+    def getTopicTags(self):pass
+    def getCategory(self):pass
+    def getAccess(self):pass
+    def getTitle(self):pass
+    def getExcerptOf(self):pass
+
+    # derived calculated fields
+    def getSEOTags(self):pass
+    def getSEODesc(self):pass
+    def getVideoTitle(self):pass
+    def getAudioTitle(self):pass
+    def getFileNamePrefix(self):pass
+
+    # media and agents
+    def addMedium(self, medium):pass
+    def getMedia(self): pass
+    def getAllAgents(self):pass
+    def subscribeAgentsHandler(self, ocuAgentEventHndl):pass
+    'this will subscribe the handler to all agents of the talk'
+
+
+
+
+
 class BVTalkJob (BVJobInterface, BVTalkInterface):
     """
     ######################## How the complex of a talk is created in the constructors #########################
@@ -464,20 +459,38 @@ class BVTalkJob (BVJobInterface, BVTalkInterface):
     """
 
     #######  BEGIN Talk Interface implementation ###########
-    def subscribeAgentsHandler(self, ocuAgentEventHndl):
-        'subscribe the agent handler to all agents of the talk'
-        agents = self.getAllAgents()
-        for a in agents:
-            a.subscribe(ocuAgentEventHndl)
+
+
+    def getID(self): return self.__ID
+
+     # basic fields
+    def getEditor(self):    return self.__descriptor[OcuTalkDescriptor.EDITOR]
+    def getDate(self):      return self.__descriptor[OcuTalkDescriptor.DATE]
+    def getTrainer(self):   return self.__descriptor[OcuTalkDescriptor.TRAINER]
+    def getContext(self):   return self.__descriptor[OcuTalkDescriptor.CONTEXT]
+    def getLanguage(self):  return self.__descriptor[OcuTalkDescriptor.LANGUAGE]
+    def getQuote(self):     return self.__descriptor[OcuTalkDescriptor.QUOTE]
+    def getTopicTags(self): return self.__descriptor[OcuTalkDescriptor.TAGS]
+    def getCategory(self):  return self.__descriptor[OcuTalkDescriptor.CATEGORY]
+    def getAccess(self):    return self.__descriptor[OcuTalkDescriptor.ACCESS]
+    def getTitle(self):     return self.__descriptor[OcuTalkDescriptor.TITLE]
+    def getExcerptOf(self): return self.__descriptor[OcuTalkDescriptor.EXCPTCOMP]
+
+    # derived calculated fields
+    def getSEOTags(self):pass
+    def getSEODesc(self):pass
+    def getVideoTitle(self):    return "%s_Vtitle"%(self.getID())#mockup
+    def getAudioTitle(self):    return "%s_Atitle"%(self.getID())#mockup
+    def getFileNamePrefix(self):return "%s_Fname"%(self.getID())#mockup
+
+    def getBasicDescriptor(self): return self.__descriptor
 
     def addMedium(self, medium):
         medium.setTalk(self)
         self.__medialist.append(medium)
 
-
-    def getID(self): return self.__ID
-    def getDescriptor(self): return self.__descriptor
     def getMedia(self): return self.__medialist
+
     def getAllAgents(self):
         'return a list with all proc and host agents configured in the talk'
         agents = []
@@ -486,6 +499,12 @@ class BVTalkJob (BVJobInterface, BVTalkInterface):
             agents.extend(m.getAllAgents())
 
         return agents
+
+    def subscribeAgentsHandler(self, ocuAgentEventHndl):
+        'subscribe the agent handler to all agents of the talk'
+        agents = self.getAllAgents()
+        for a in agents:
+            a.subscribe(ocuAgentEventHndl)
     ################ END  Talk Interface Implementation ##################
 
     ################ BEGIN Job Interface Implementation ##################
@@ -513,7 +532,7 @@ class BVTalkJob (BVJobInterface, BVTalkInterface):
     # end agent handler
 
     def __init__(self,  descriptor, action, status):
-        self.__ID = descriptor[TalkDescriptorKeys.ID]
+        self.__ID = descriptor[OcuTalkDescriptor.ID]
         self.__descriptor = descriptor
         self.__action = action
         self._status = status

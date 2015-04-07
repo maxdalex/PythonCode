@@ -1,51 +1,36 @@
-from bvOneClickDB import *
-from bvOneClickUI import *
+from bvOneClickMD import *
+from bvOneClickUtils import *
 
 _log = BVOneClickMessageLog('bvOneClickCT')
 
-class BVCTcommands (object):
-    "list all commands parsed and executed"
-
-
-
-
 
 class BVControlProcess (object):
-    #While the hmedia host agents are part of the talk structure. The src processor are part of the control process
-    # 28/2/15: changed and now the psource process are just agents of the media. So thi is not necessary
-    #def __init__(self, srcproclist):
-        #self.__srcproclist = srcproclist
-
 
     ### MAIN JOB PROCESSING ####
-    def processjob(self, talk):
-        assert isinstance(talk, BVTalk)
-
-
+    def processJob(self, talk):
+        assert isinstance(talk, BVTalkJob)
 
         # If the action is NOOP return immediately
         action = talk.getAction()
-        if  action ==  BVTalk.NOOP: return
+        if  action ==  BVTalkJob.NOOP: return
 
-        #talk = talkjob.getTalk()
-
-        assert isinstance(talk, BVTalk)
+        # retrieves all the media of the talk
         medialist = talk.getMedia()
 
-        #go through the media list and for each media acgtivate al the media hosts
+        #for each medium activate the associated   proc and host agents
         for m in medialist :
-            assert isinstance (m, BVTalkMedia)
+            assert isinstance (m, BVTalkMedium)
 
             # activate the media proc agent
             agent = m.getProcessAgent()
-            if agent!=None: agent.processMedia()
+            if agent!=None: agent.processMedium()
 
             # activate the primary and other agents
             pagent = m.getPrimaryHost()
             oagents = m.getOtherHosts()
 
             # according to the operation invokes the action on each agent
-            if action == BVTalk.UPLOAD:
+            if action == BVTalkJob.UPLOAD:
                 pagent.upload()
                 for a in oagents:
                     a.upload()
