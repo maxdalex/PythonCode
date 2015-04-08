@@ -1,5 +1,5 @@
 from  bvOneClickCT import *
-from  bvOneClickMD import *
+import  bvOneClickMD
 from youtubeMediaHostAgent import *
 from vimeoMediaHostAgent import *
 from hwdMediaHost import *
@@ -39,10 +39,8 @@ class BVOneClickFramework(object):
          BVControlProcess.processJob(talk)
 
     def __init__(self):
-        #set the factory methods to create agents
-        OcuModelFactory.videoPaFactoryMethod = createAudioSrcProcAgent
-        OcuModelFactory.audioPaFactoryMethod = createAudioSrcProcAgent
-        OcuModelFactory.haFactoryMethod = createHostAgent
+        #set the factory methods in MD to create agents
+        bvOneClickMD.setMDFactoryMethods(createHostAgent,createAudioSrcProcAgent, createVideoSrcProcAgent)
 
 
 

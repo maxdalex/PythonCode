@@ -49,39 +49,39 @@ bitrate = '128k'
 class ID3Map (object):
     def getComment(self):
         date = '_Date: '+ self.getDate()
-        tags = '_Tags: '+ ''.join(self.__dscr[OcuTalkDescriptor.TAGS])
-        category = '_Category: '+ self.__dscr[OcuTalkDescriptor.CATEGORY]
-        description =  '_Description: '+ self.__dscr[OcuTalkDescriptor.QUOTE]
-        access =  '_Access: '+ self.__dscr[OcuTalkDescriptor.ACCESS]
-        language =  '_Language: '+ self.__dscr[OcuTalkDescriptor.LANGUAGE]
-        excerpt = '_ExcerptCompOf: '+ self.__dscr[OcuTalkDescriptor.EXCPTCOMP]
-        id = '_TalkID: ' + self.__talk.getKey()
+        tags = '_Tags: '+ ''.join(self.__talk.getTopicTags())
+        category = '_Category: '+ self.__talk.getCategory()
+        description =  '_Description: '+ self.__talk.getQuote()
+        access =  '_Access: '+ self.__talk.getAccess()
+        language =  '_Language: '+ self.__talk.getLanguage()
+        excerpt = '_ExcerptCompOf: '+ self.__talk.getExcerptOf()
+        id = '_TalkID: ' + self.__talk.getID()
 
         comment = date + '\n' + tags + '\n' + category + '\n'  + description + '\n' + access + '\n'  + language + '\n'  + excerpt + '\n'+ id
 
         return  unicode(comment, "utf-8")
 
     def getAlbum(self):
-        a = self.__dscr[OcuTalkDescriptor.CONTEXT]
+        a = self.__talk.getContext()
         return unicode(a, "utf-8")
 
     def getAlbumArtist(self):
         return u"Balanced View"
 
     def getArtist(self):
-        a = 'Balanced View ' +  self.__dscr[OcuTalkDescriptor.TRAINER]
+        a = 'Balanced View ' +  self.__talk.getTrainer()
         return unicode(a, "utf-8")
 
     def getTitle(self):
-        a =  self.getDate() + ' '+ self.__dscr[OcuTalkDescriptor.TRAINER] + ':' + self.__dscr[OcuTalkDescriptor.TITLE]
+        a =  self.getDate() + ' '+ self.__talk.getTrainer() + ':' + self.__talk.getTitle()
         return unicode(a, "utf-8")
 
     def getSubtitle(self):
-        a = self.__dscr[OcuTalkDescriptor.CONTEXT]
+        a = self.__talk.getContext()
         return unicode(a, "utf-8")
 
     def getPublisher(self):
-        a = self.__dscr[OcuTalkDescriptor.EDITOR]
+        a = self.__talk.getEditor()
         return unicode(a, "utf-8")
 
     def getFrontCover(self):
@@ -101,16 +101,15 @@ class ID3Map (object):
         :return:
         """
     def getYear(self):
-        date = self.__dscr[OcuTalkDescriptor.DATE]
+        date = self.__talk.getDate()
         year = time.strftime("%Y", date )
         return unicode(year, "utf-8")
     def getDate(self):
-        date = self.__dscr[OcuTalkDescriptor.DATE]
+        date = self.__talk.getDate()
         s = time.strftime("%d/%m/%y", date)
         return s
 
     def __init__(self,talk):
-        self.__dscr = talk.getBasicDescriptor()
         self.__talk = talk
 
 
@@ -227,7 +226,7 @@ class MP3ID3SMediumProcAgent (BVMediumProcAgent):
 
         talk = self.getmedium().getTalk()
         handle = self.getmedium().getSource().url
-        _log.stdout('extract and tag audio for '+ talk.getKey())
+        _log.stdout('extract and tag audio for '+ talk.getID())
 
         #find the video source
         media = talk.getMedia()

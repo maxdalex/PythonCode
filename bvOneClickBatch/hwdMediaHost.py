@@ -16,7 +16,7 @@ class HWDVideoMediaHostAgent(BVMediaHostAgent):
      super(HWDVideoMediaHostAgent, self).__init__(key, thumb,ds)
 
     def upload(self):
-        _log.stderr('Talk %s: hosting not yet implemented'%(self.getTalk().getKey()))
+        _log.stderr('Talk %s: hosting not yet implemented'%(self.getTalk().getID()))
         self._dispatchFailure('ERROR: video not uploaded')
 
 class HWDAudioMediaHostAgent(BVMediaHostAgent):
@@ -25,6 +25,6 @@ class HWDAudioMediaHostAgent(BVMediaHostAgent):
      super(HWDAudioMediaHostAgent, self).__init__(key, thumbDict,ds)
 
     def upload(self):
-        _log.stderr('Talk %s: hosting not yet implemented'%(self.getTalk().getKey()))
+        _log.stderr('Talk %s: hosting not yet implemented'%(self.getTalk().getID()))
         self._dispatchFailure('ERROR: audio not uploaded')
 

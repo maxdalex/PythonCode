@@ -7,6 +7,7 @@ from  gSheetJobManager import *
 # Job Manager DataBase. For interactive behaviour see processJob() method in BvOneClickFramework module
 if __name__ == '__main__':
 
+        #create an instance of the framework
         ocu = BVOneClickFramework()
 
         # retrieves job manager

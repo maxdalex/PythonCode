@@ -14,7 +14,7 @@ HWDAUDIO = 'hwdaudio'
 S3VIDEO = 's3video'
 S3AUDIO = 's3audio'
 
-log = BVOneClickMessageLog('gspreadUIDB')
+log = BVOneClickMessageLog('gSheetJobManager')
 
 #THE worksheet handle to gdata. Global to the module
 _WKS = None
@@ -200,7 +200,7 @@ class GSheetMapper (object):
                 VIDEOSRC:'',
                 YOUTUBE:'',
                 VIMEO:  '',
-                HWDVIDEO: "%s,%s" % (UPLOAD, REMOTELNK),
+                HWDVIDEO: "%s,%s" % (UPLOAD, PRIMARYHOST),
                 S3VIDEO: ''
             }
         }
@@ -312,10 +312,11 @@ class GSheetJobManager (OcuJobManagerInterface) :
         #create upoad pattern
         pattername = r[GSheetMapper.map[UPLDPATTERN]]
         patterndict = GSheetMapper.updirectives[pattername]
-        agentsptrn = OcuJobAgentsPattern(patterndict)
+        agentsptrn = OcuUploadPattern(patterndict)
         
         # create the Talk Job
-        talkjob = OcuTalkJobFactory.createTalkJob(action, status, talkdesc, videosrc, videothumb,agentsptrn,audiosrc)
+        factory = OcuTalkJobFactory()# try this to solve an error at run time
+        talkjob = factory.createTalkJob(action, status, talkdesc, videosrc, videothumb,agentsptrn,audiosrc)
 
         # Subscribe the gsheet event handler on all agents of the talk
         eventHandler = GsheetTalkEventHandler(talkjob, rnum)
@@ -382,7 +383,7 @@ class GsheetTalkEventHandler (BVAgentEventHandlerInterface):
     'This is the handler listening for how the agents of the talk have done after their actions'
 
     def _getAgentCol(self,agent):
-        key = agent.getKey()
+        key = agent.getID()
         ccode = GSheetMapper.map[key]
         cnum = GSheetMapper.cmap[ccode]
         return cnum
