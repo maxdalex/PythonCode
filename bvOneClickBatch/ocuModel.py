@@ -14,7 +14,7 @@ def setMDFactoryMethods(ha, audioPa, videopa):
     MDvideoPaFactoryMethod = videopa
 
 
-class OcuModelFactory(object):
+class MDFactory(object):
     # Singletone factory to create agents hiding their concrete class
 
     def createHostAgent(self, akey, videothumb, directives):
@@ -29,8 +29,8 @@ class OcuModelFactory(object):
         global MDvideoPaFactoryMethod
         return MDvideoPaFactoryMethod(key, directives)
 
-# factory singletone
-MDFactory = OcuModelFactory()
+# factory singletone: I wanted a static method but I got stuck in Python
+mdFactory = MDFactory()
 
 ############ end model factory ################################################################
 
@@ -42,13 +42,6 @@ class OcuJobManagerInterface(object):
     def getTalkJobs(self): pass
 
 
-class TalkJobKeys(object):
-    'provides constant standardized keys for all relevant elements of a talkjob '
-    #ID = 'id'
-    STATUS = 'status'
-    ACTION = 'action'
-
-
 class BVMediaTypes:
     VIDEO = 'video'
     AUDIO = 'audio'
@@ -57,11 +50,10 @@ class BVMediaTypes:
 class BVMediaSource(object):
     def toString(self): return self.url
 
-    def __init__(self, srcurl, t, directives=None):
+    def __init__(self, srcurl, t):
         'the attribute  params is a host dependent info carried along in the framework'
         self.type = t
         self.url = srcurl
-        self.directives = directives
 
 
 class BVAgentInterface(object):
@@ -190,7 +182,7 @@ class BVTalkMedium(object):
         self.__ohosts = []
 
 
-class BVMediaHostAgent(BVAgentInterface):
+class BVMediumHostAgent(BVAgentInterface):
     'An agent managing the hosting of a particular medium of a talk on a certain platform. It is a concrete class with abstract methods'
 
     #recognized directives
@@ -280,7 +272,7 @@ class BVJobStatus(object):
         self._statedict = {}
 
 
-class OcuTalkDescriptor(object):
+class BVTalkDescriptor(object):
     ' This class is useful to compact the talk basic fields in one object dictionary'
 
     LISTDELIMITER = ','
@@ -315,11 +307,11 @@ class OcuTalkDescriptor(object):
         'it accepts a string value and convert it in the appropriate type within the descriptor'
         #date format = dd/mm/yyyy;
 
-        if key == OcuTalkDescriptor.TAGS:
-            tlist = svalue.split(OcuTalkDescriptor.LISTDELIMITER)
+        if key == BVTalkDescriptor.TAGS:
+            tlist = svalue.split(BVTalkDescriptor.LISTDELIMITER)
             self.__descdict[key] = tlist
 
-        elif key == OcuTalkDescriptor.DATE:
+        elif key == BVTalkDescriptor.DATE:
             date = time.strptime(svalue, "%d/%m/%y")
             self.__descdict[key] = date
 
@@ -350,7 +342,7 @@ class OcuUploadPattern(object):
 
     def isPrimary(self, agentKey):
         list = (self.getDirectives(agentKey)).split(',')
-        res = BVMediaHostAgent.PRIMARYHOST in list
+        res = BVMediumHostAgent.PRIMARYHOST in list
         return res
 
     def getDirectives(self, agentKey):
@@ -393,9 +385,20 @@ class OcuUploadPattern(object):
 class OcuTalkJobFactory(object):
     'it provides methods to create a talk job with its composite structure'
 
-    #   @staticmethod: i suspect static methods make a mess
-    def createTalkJob(self, action, status, talkdesc, videosrc, videothumb, uploadptrn, audiosrc=None):
+    @staticmethod
+    def createTalkJob(action, status, talkdesc, videosrc, videothumb, uploadptrn, audiosrc=None):
         'Given the basic input it creates the whole structure of a talk job'
+
+        """
+        ######################## How the complex of a talk is created in the factory method #########################
+
+        1. A talk is created without media and hosts. Media are added with AddMEdia. AddMedia calls the setTalk in media.
+        2. A medium is created on its own out of a talk and without media hosts.
+        2A. A media process agent is created from the media
+        2B. Before hosts are added the media (process agent) needs to be associated to a talk.
+        3. Media hosts are added  with appendHost appendHost calls the setMedia in host
+        3. A media host is created on its own and later added to a media with append host.
+        """
 
         #################### Talk creation #######################
         talkjob = BVTalkJob(talkdesc, action, status)
@@ -411,7 +414,7 @@ class OcuTalkJobFactory(object):
         #set the process agent for the video medium if needed
         agentkey = BVMediumProcAgent.VIDEOSOURCE
         if uploadptrn.isActive(agentkey) and (not status.isDone(agentkey)):
-            videoproc = MDFactory.createVideoSrcProcAgent(agentkey, uploadptrn.getDirectives(agentkey))
+            videoproc = mdFactory.createVideoSrcProcAgent(agentkey, uploadptrn.getDirectives(agentkey))
             videomedium.setProcessAgent(videoproc)
 
         # audio medium
@@ -424,7 +427,7 @@ class OcuTalkJobFactory(object):
         #set the process agent for the video medium if needed
         agentkey = BVMediumProcAgent.AUDIOSOURCE
         if uploadptrn.isActive(agentkey) and (not status.isDone(agentkey)):
-            audioproc = MDFactory.createAudioSrcProcAgent(agentkey, uploadptrn.getDirectives(agentkey))
+            audioproc = mdFactory.createAudioSrcProcAgent(agentkey, uploadptrn.getDirectives(agentkey))
             audiomedium.setProcessAgent(audioproc)
 
         ################  VIDEO Host Agents creation and setting in the medium ##########################
@@ -433,7 +436,7 @@ class OcuTalkJobFactory(object):
         for hagentkey in hosts:
             if not status.isDone(hagentkey):
                 # creates the medium host
-                host = MDFactory.createHostAgent(hagentkey, videothumb, uploadptrn.getDirectives(hagentkey))
+                host = mdFactory.createHostAgent(hagentkey, videothumb, uploadptrn.getDirectives(hagentkey))
                 # add the host to the video medium
                 if uploadptrn.isPrimary(hagentkey):
                     videomedium.setPrimaryHost(host)
@@ -447,7 +450,7 @@ class OcuTalkJobFactory(object):
         for hagentkey in hosts:
             if not status.isDone(hagentkey):
                 # creates the medium host
-                host = MDFactory.createHostAgent(hagentkey, videothumb, uploadptrn.getDirectives(hagentkey))
+                host = mdFactory.createHostAgent(hagentkey, videothumb, uploadptrn.getDirectives(hagentkey))
                 # add the host to the audio medium
                 if uploadptrn.isPrimary(hagentkey):
                     audiomedium.setPrimaryHost(host)
@@ -459,6 +462,11 @@ class OcuTalkJobFactory(object):
 
 class BVJobInterface(object):
     'abstract class representing a job to be done on a talk'
+    #job attributes keys
+    STATUS = 'status'
+    ACTION = 'action'
+
+    #actions types
     NOOP = 'NOOP'
     SKIP = 'SKIP'
     UPLOAD = 'UPLOAD'
@@ -526,16 +534,7 @@ class BVTalkInterface(object):
 
 
 class BVTalkJob(BVJobInterface, BVTalkInterface):
-    """
-    ######################## How the complex of a talk is created in the constructors #########################
 
-    1. A talk is created without media and hosts. Media are added with AddMEdia. AddMedia calls the setTalk in media.
-    2. A medium is created on its own out of a talk and without media hosts.
-    2A. A media process agent is created from the media
-    2B. Before hosts are added the media (process agent) needs to be associated to a talk.
-    3. Media hosts are added  with appendHost appendHost calls the setMedia in host
-    3. A media host is created on its own and later added to a media with append host.
-    """
 
     #######  BEGIN Talk Interface implementation ###########
 
@@ -545,37 +544,37 @@ class BVTalkJob(BVJobInterface, BVTalkInterface):
 
     # basic fields
     def getEditor(self):
-        return self.__descriptor.getValue(OcuTalkDescriptor.EDITOR)
+        return self.__descriptor.getValue(BVTalkDescriptor.EDITOR)
 
     def getDate(self):
-        return self.__descriptor.getValue(OcuTalkDescriptor.DATE)
+        return self.__descriptor.getValue(BVTalkDescriptor.DATE)
 
     def getTrainer(self):
-        return self.__descriptor.getValue(OcuTalkDescriptor.TRAINER)
+        return self.__descriptor.getValue(BVTalkDescriptor.TRAINER)
 
     def getContext(self):
-        return self.__descriptor.getValue(OcuTalkDescriptor.CONTEXT)
+        return self.__descriptor.getValue(BVTalkDescriptor.CONTEXT)
 
     def getLanguage(self):
-        return self.__descriptor.getValue(OcuTalkDescriptor.LANGUAGE)
+        return self.__descriptor.getValue(BVTalkDescriptor.LANGUAGE)
 
     def getQuote(self):
-        return self.__descriptor.getValue(OcuTalkDescriptor.QUOTE)
+        return self.__descriptor.getValue(BVTalkDescriptor.QUOTE)
 
     def getTopicTags(self):
-        return self.__descriptor.getValue(OcuTalkDescriptor.TAGS)
+        return self.__descriptor.getValue(BVTalkDescriptor.TAGS)
 
     def getCategory(self):
-        return self.__descriptor.getValue(OcuTalkDescriptor.CATEGORY)
+        return self.__descriptor.getValue(BVTalkDescriptor.CATEGORY)
 
     def getAccess(self):
-        return self.__descriptor.getValue(OcuTalkDescriptor.ACCESS)
+        return self.__descriptor.getValue(BVTalkDescriptor.ACCESS)
 
     def getTitle(self):
-        return self.__descriptor.getValue(OcuTalkDescriptor.TITLE)
+        return self.__descriptor.getValue(BVTalkDescriptor.TITLE)
 
     def getExcerptOf(self):
-        return self.__descriptor.getValue(OcuTalkDescriptor.EXCPTCOMP)
+        return self.__descriptor.getValue(BVTalkDescriptor.EXCPTCOMP)
 
     # derived calculated fields
     def getSEOTags(self):
@@ -650,7 +649,7 @@ class BVTalkJob(BVJobInterface, BVTalkInterface):
     # end agent handler
 
     def __init__(self, descriptor, action, status):
-        self.__ID = descriptor.getValue(OcuTalkDescriptor.ID)
+        self.__ID = descriptor.getValue(BVTalkDescriptor.ID)
         self.__descriptor = descriptor
         self.__action = action
         self._status = status

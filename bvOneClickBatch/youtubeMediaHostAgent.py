@@ -1,11 +1,11 @@
-from bvOneClickMD import *
-from bvOneClickUtils import *
+from ocuModel import *
+from ocuUtils import *
 
 _log = BVOneClickMessageLog('YouTubeMediaHostAgent')
 
 
 
-class YoutubeMediaHostAgent (BVMediaHostAgent):
+class YoutubeMediumHostAgent (BVMediumHostAgent):
 
     def __initSubclass(self, key, thumb, ds):
      _log.stderr(' created for Talk %s'%(self.getTalk().getID()))

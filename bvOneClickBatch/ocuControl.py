@@ -1,10 +1,10 @@
-from bvOneClickMD import *
-from bvOneClickUtils import *
+from ocuModel import *
+from ocuUtils import *
 
 _log = BVOneClickMessageLog('bvOneClickCT')
 
 
-class BVControlProcess (object):
+class OcuControlProcess (object):
 
     ### MAIN JOB PROCESSING ####
     @staticmethod

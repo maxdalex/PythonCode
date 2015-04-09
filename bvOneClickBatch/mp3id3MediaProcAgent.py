@@ -6,9 +6,9 @@ from eyed3 import *
 import base64
 import time
 
-from bvOneClickCT import *
-from bvOneClickMD import *
-from bvOneClickUtils import BVOneClickMessageLog
+from ocuControl import *
+from ocuModel import *
+from ocuUtils import BVOneClickMessageLog
 
 #### module confuguration ########
 _log = BVOneClickMessageLog('mp3id3AudioProc')
@@ -114,7 +114,7 @@ class ID3Map (object):
 
 
 
-class MP3ID3SMediumProcAgent (BVMediumProcAgent):
+class MP3ID3MediumProcAgent (BVMediumProcAgent):
 
     def __extractAudioFromVideo(self,video, fname):
         # return an a media source of type audio
@@ -248,4 +248,4 @@ class MP3ID3SMediumProcAgent (BVMediumProcAgent):
         return
 
     def __init__(self, key, ds):
-        super(MP3ID3SMediumProcAgent, self).__init__(key, ds)
+        super(MP3ID3MediumProcAgent, self).__init__(key, ds)

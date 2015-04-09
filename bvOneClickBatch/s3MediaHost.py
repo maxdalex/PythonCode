@@ -1,11 +1,11 @@
-from bvOneClickMD import *
-from bvOneClickUtils import *
+from ocuModel import *
+from ocuUtils import *
 
 _log = BVOneClickMessageLog('S3MediaHostAgent')
 
 
 
-class S3VideoMediaHostAgent(BVMediaHostAgent):
+class S3VideoMediumHostAgent(BVMediumHostAgent):
      def __initSubclass(self, key, thumb, ds):
          _log.stderr(' created for Talk %s'%(self.getTalk().getID()))
 
@@ -14,7 +14,7 @@ class S3VideoMediaHostAgent(BVMediaHostAgent):
         self._dispatchFailure('ERROR: video not uploaded')
 
 
-class S3AudioMediaHostAgent(BVMediaHostAgent):
+class S3AudioMediumHostAgent(BVMediumHostAgent):
      def  __initSubclass(self, key, thumb, ds):
           _log.stderr(' created for Talk %s'%(self.getTalk().getID()))
 

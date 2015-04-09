@@ -1,7 +1,7 @@
 import gspread
-from bvOneClickMD import *
-from bvOneClickCT import *
-from bvOneClickUtils import *
+from ocuModel import *
+from ocuControl import *
+from ocuUtils import *
 
 
 SPREADSHEET= '1dwjdmi77m9gVFts5WYawy_k11LekmB7ejjo-5VkU0QQ'
@@ -21,11 +21,11 @@ _WKS = None
 
 ##################### Shortcuts to OCU's costants ###############################
 EXTRACTAUDIO = BVMediumProcAgent.EXTRACTAUDIO
-PRIMARYHOST = BVMediaHostAgent.PRIMARYHOST
-UPLOAD = BVMediaHostAgent.UPLOAD
-REMOTELNK = BVMediaHostAgent.REMOTELNK
-VIDEOTHUMB = BVMediaHostAgent.VIDEOTHUMB
-TRAINTHUMB = BVMediaHostAgent.TRAINTHUMB
+PRIMARYHOST = BVMediumHostAgent.PRIMARYHOST
+UPLOAD = BVMediumHostAgent.UPLOAD
+REMOTELNK = BVMediumHostAgent.REMOTELNK
+VIDEOTHUMB = BVMediumHostAgent.VIDEOTHUMB
+TRAINTHUMB = BVMediumHostAgent.TRAINTHUMB
 
 #sheet columns names
 
@@ -42,20 +42,20 @@ S3VIDEO = BVOneClickConf.S3VIDEO
 VIDEOSRC = BVMediumProcAgent.VIDEOSOURCE
 AUDIOSRC = BVMediumProcAgent.AUDIOSOURCE
 
-ID = OcuTalkDescriptor.ID
-ACTION =  TalkJobKeys.ACTION
-STATUS = TalkJobKeys.STATUS
-DATE = OcuTalkDescriptor.DATE
-TRAINER = OcuTalkDescriptor.TRAINER
-CONTEXT = OcuTalkDescriptor.CONTEXT
-TITLE = OcuTalkDescriptor.TITLE
-LANGUAGE = OcuTalkDescriptor.LANGUAGE
-TAGS = OcuTalkDescriptor.TAGS
-CATEGORY = OcuTalkDescriptor.CATEGORY
-QUOTE = OcuTalkDescriptor.QUOTE
-ACCESS = OcuTalkDescriptor.ACCESS
-EDITOR = OcuTalkDescriptor.EDITOR
-EXCPTCOMP = OcuTalkDescriptor.EXCPTCOMP
+ID = BVTalkDescriptor.ID
+ACTION =  BVTalkJob.ACTION
+STATUS = BVTalkJob.STATUS
+DATE = BVTalkDescriptor.DATE
+TRAINER = BVTalkDescriptor.TRAINER
+CONTEXT = BVTalkDescriptor.CONTEXT
+TITLE = BVTalkDescriptor.TITLE
+LANGUAGE = BVTalkDescriptor.LANGUAGE
+TAGS = BVTalkDescriptor.TAGS
+CATEGORY = BVTalkDescriptor.CATEGORY
+QUOTE = BVTalkDescriptor.QUOTE
+ACCESS = BVTalkDescriptor.ACCESS
+EDITOR = BVTalkDescriptor.EDITOR
+EXCPTCOMP = BVTalkDescriptor.EXCPTCOMP
 
 AUDIO = BVMediaTypes.AUDIO
 VIDEO = BVMediaTypes.VIDEO
@@ -103,8 +103,8 @@ class GSheetMapper (object):
     # the column in the sheet without affecting the program, which uses its own label system consistently
     map = {
             ID: '1',
-            TalkJobKeys.ACTION: '2',
-            TalkJobKeys.STATUS: '3',
+            BVTalkJob.ACTION: '2',
+            BVTalkJob.STATUS: '3',
             UPLDPATTERN: '4',
             DATE: '5',
             TRAINER: '6',
@@ -289,15 +289,15 @@ class GSheetJobManager (OcuJobManagerInterface) :
         'r is a row of the spreadsheet in form of a dictionary'
 
         # If the action is SKIP or NOOP it returns immediately
-        action = r[GSheetMapper.map[TalkJobKeys.ACTION]]
+        action = r[GSheetMapper.map[BVTalkJob.ACTION]]
         if (action== BVTalkJob.SKIP or action == BVTalkJob.NOOP or action == '' ): return None
 
         # create Status
-        status = self.__valueToStatus(r[GSheetMapper.map[TalkJobKeys.STATUS]])
+        status = self.__valueToStatus(r[GSheetMapper.map[BVTalkJob.STATUS]])
 
         # create Talk descriptor
         sdesc = GSheetJobManager.__getTalkDescriptorStringDic(r)
-        talkdesc = OcuTalkDescriptor()
+        talkdesc = BVTalkDescriptor()
         talkdesc.importFromStringDict(sdesc)
 
         # get video thumb URL
@@ -315,8 +315,7 @@ class GSheetJobManager (OcuJobManagerInterface) :
         agentsptrn = OcuUploadPattern(patterndict)
         
         # create the Talk Job
-        factory = OcuTalkJobFactory()# try this to solve an error at run time
-        talkjob = factory.createTalkJob(action, status, talkdesc, videosrc, videothumb,agentsptrn,audiosrc)
+        talkjob = OcuTalkJobFactory.createTalkJob(action, status, talkdesc, videosrc, videothumb,agentsptrn,audiosrc)
 
         # Subscribe the gsheet event handler on all agents of the talk
         eventHandler = GsheetTalkEventHandler(talkjob, rnum)
@@ -395,7 +394,7 @@ class GsheetTalkEventHandler (BVAgentEventHandlerInterface):
     def _updateStatusCell(self, agent, string):
 
         #find the status column number
-        ccode = GSheetMapper.map[TalkJobKeys.STATUS]
+        ccode = GSheetMapper.map[BVTalkJob.STATUS]
         cnum = GSheetMapper.cmap[ccode]
 
         # calculate the new status string

@@ -1,5 +1,5 @@
-from bvOneClickMD import *
-from bvOneClickUtils import *
+from ocuModel import *
+from ocuUtils import *
 
 
 ##################### ON THUMBNAIL FILES for AUDIOS ##############################
@@ -10,21 +10,21 @@ from bvOneClickUtils import *
 
 _log = BVOneClickMessageLog('HWDHostAgent')
 
-class HWDVideoMediaHostAgent(BVMediaHostAgent):
+class HWDVideoMediumHostAgent(BVMediumHostAgent):
 
-    def __init__(self, key, thumb, ds):
-     super(HWDVideoMediaHostAgent, self).__init__(key, thumb,ds)
+    def __initSubclass(self, key, thumb, ds):
+         _log.stderr(' created for Talk %s'%(self.getTalk().getID()))
 
     def upload(self):
         _log.stderr('Talk %s: hosting not yet implemented'%(self.getTalk().getID()))
         self._dispatchFailure('ERROR: video not uploaded')
 
-class HWDAudioMediaHostAgent(BVMediaHostAgent):
+class HWDAudioMediumHostAgent(BVMediumHostAgent):
 
-    def __init__(self, key, thumbDict, ds):
-     super(HWDAudioMediaHostAgent, self).__init__(key, thumbDict,ds)
+    def __initSubclass(self, key, thumb, ds):
+     _log.stderr(' created for Talk %s'%(self.getTalk().getID()))
 
     def upload(self):
         _log.stderr('Talk %s: hosting not yet implemented'%(self.getTalk().getID()))
-        self._dispatchFailure('ERROR: audio not uploaded')
+        self._dispatchFailure('ERROR: video not uploaded')
 

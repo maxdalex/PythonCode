@@ -1,6 +1,6 @@
-from bvOneClickCT import *
-from bvOneClickMD import *
-from bvOneClickUtils import *
+from ocuControl import *
+from ocuModel import *
+from ocuUtils import *
 
 #### module confuguration ########
 _log = BVOneClickMessageLog('mp4MediaProc')
